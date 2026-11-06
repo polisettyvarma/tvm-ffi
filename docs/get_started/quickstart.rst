@@ -39,6 +39,7 @@ We can build a single shared library that works across:
    - Compiler: C++20-capable toolchain (GCC/Clang/MSVC)
    - Optional ML frameworks for testing: NumPy, PyTorch, JAX, CuPy, PaddlePaddle
    - CUDA: Any modern version (if you want to try the CUDA part)
+   - SYCL: Intel oneAPI DPC++ compiler ``icpx`` (if you want to try the SYCL part on Intel GPUs)
    - TVM-FFI installed via:
 
      .. code-block:: bash
@@ -82,6 +83,14 @@ Suppose we implement a C++ function ``AddOne`` that performs elementwise ``y = x
       :start-after: [example.begin]
       :end-before: [example.end]
 
+  .. group-tab:: SYCL
+
+    .. literalinclude:: ../../examples/quickstart/compile/add_one_sycl.cpp
+      :language: cpp
+      :emphasize-lines: 13, 15, 18
+      :start-after: [example.begin]
+      :end-before: [example.end]
+
 
 The macro :c:macro:`TVM_FFI_DLL_EXPORT_TYPED_FUNC` exports the C++ function ``AddOne``
 as a TVM-FFI-compatible symbol ``__tvm_ffi_add_one_cpu/cuda``. If :c:macro:`TVM_FFI_DLL_EXPORT_INCLUDE_METADATA` is set to 1,
@@ -94,6 +103,7 @@ The class :cpp:class:`tvm::ffi::TensorView` enables zero-copy interop with tenso
 - any array type that supports the standard :external+data-api:doc:`DLPack protocol <design_topics/data_interchange>`.
 
 Finally, :cpp:func:`TVMFFIEnvGetStream` can be used in the CUDA code to launch kernels on the caller's stream.
+In the SYCL code, the stream is the caller's ``sycl::queue*``.
 
 .. seealso::
 
@@ -127,6 +137,13 @@ Compile with TVM-FFI
       :language: bash
       :start-after: [cuda_compile.begin]
       :end-before: [cuda_compile.end]
+
+  .. group-tab:: SYCL
+
+    .. literalinclude:: ../../examples/quickstart/raw_compile.sh
+      :language: bash
+      :start-after: [sycl_compile.begin]
+      :end-before: [sycl_compile.end]
 
 These steps produce shared libraries ``add_one_cpu.so`` and ``add_one_cuda.so`` that can be used across languages and frameworks.
 
@@ -167,6 +184,22 @@ TVM-FFI integrates with CMake via ``find_package`` as demonstrated below:
       # Link CUDA target to `tvm_ffi::header` and `tvm_ffi::shared`
       add_library(add_one_cuda SHARED compile/add_one_cuda.cu)
       tvm_ffi_configure_target(add_one_cuda)
+
+  .. group-tab:: SYCL
+
+    .. code-block:: cmake
+
+      # Configure with `-DCMAKE_CXX_COMPILER=icpx`
+      # Run `tvm-ffi-config --cmakedir` to set `tvm_ffi_ROOT`
+      find_package(Python COMPONENTS Interpreter REQUIRED)
+      execute_process(COMMAND "${Python_EXECUTABLE}" -m tvm_ffi.config --cmakedir OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE tvm_ffi_ROOT)
+      find_package(tvm_ffi CONFIG REQUIRED)
+
+      # Link SYCL target to `tvm_ffi::header` and `tvm_ffi::shared`
+      add_library(add_one_sycl SHARED compile/add_one_sycl.cpp)
+      target_compile_options(add_one_sycl PRIVATE -fsycl)
+      target_link_options(add_one_sycl PRIVATE -fsycl)
+      tvm_ffi_configure_target(add_one_sycl)
 
 **Artifact.** The resulting ``add_one_cpu.so`` and ``add_one_cuda.so`` are small libraries that are agnostic to:
 
@@ -210,10 +243,21 @@ We can then use these functions in the following ways:
 PyTorch
 ~~~~~~~
 
-.. literalinclude:: ../../examples/quickstart/load/load_pytorch.py
-  :language: python
-  :start-after: [example.begin]
-  :end-before: [example.end]
+.. tabs::
+
+  .. group-tab:: CUDA
+
+    .. literalinclude:: ../../examples/quickstart/load/load_pytorch.py
+      :language: python
+      :start-after: [example.begin]
+      :end-before: [example.end]
+
+  .. group-tab:: SYCL
+
+    .. literalinclude:: ../../examples/quickstart/load/load_pytorch_xpu.py
+      :language: python
+      :start-after: [example.begin]
+      :end-before: [example.end]
 
 .. _ship-to-jax:
 

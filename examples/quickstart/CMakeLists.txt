@@ -17,7 +17,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(quickstart LANGUAGES CXX)
 
-option(EXAMPLE_NAME "Which example to build ('compile_cpu'/'compile_cuda'/'load_cpp')"
+option(EXAMPLE_NAME
+       "Which example to build ('compile_cpu'/'compile_cuda'/'compile_sycl'/'load_cpp')"
        "compile_cpu"
 )
 message(STATUS "Building example: ${EXAMPLE_NAME}")
@@ -71,6 +72,14 @@ elseif (EXAMPLE_NAME STREQUAL "compile_cuda")
   target_link_libraries(add_one_cuda PRIVATE tvm_ffi::header tvm_ffi::shared)
   set_target_properties(add_one_cuda PROPERTIES PREFIX "" SUFFIX ".so")
   set_flat_output_dirs(add_one_cuda)
+elseif (EXAMPLE_NAME STREQUAL "compile_sycl")
+  # Example 2b. SYCL `add_one`, configure with `-DCMAKE_CXX_COMPILER=icpx`
+  add_library(add_one_sycl SHARED compile/add_one_sycl.cpp)
+  target_compile_options(add_one_sycl PRIVATE -fsycl)
+  target_link_options(add_one_sycl PRIVATE -fsycl)
+  target_link_libraries(add_one_sycl PRIVATE tvm_ffi::header tvm_ffi::shared)
+  set_target_properties(add_one_sycl PROPERTIES PREFIX "" SUFFIX ".so")
+  set_flat_output_dirs(add_one_sycl)
 elseif (EXAMPLE_NAME STREQUAL "load_cpp")
   # Example 3. Load C++ shared library
   add_executable(load_cpp load/load_cpp.cc)
@@ -78,6 +87,6 @@ elseif (EXAMPLE_NAME STREQUAL "load_cpp")
   set_flat_output_dirs(load_cpp)
 else ()
   message(FATAL_ERROR "Unknown EXAMPLE_NAME option: ${EXAMPLE_NAME}. "
-                      "Expected: 'compile_cpu', 'compile_cuda', 'load_cpp'."
+                      "Expected: 'compile_cpu', 'compile_cuda', 'compile_sycl', 'load_cpp'."
   )
 endif ()

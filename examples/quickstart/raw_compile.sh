@@ -44,6 +44,19 @@ nvcc -shared -O3 compile/add_one_cuda.cu    \
 # [cuda_compile.end]
 fi
 
+# Example 2b. Compile SYCL `add_one_sycl.cpp` to shared library `add_one_sycl.so`
+
+if command -v icpx >/dev/null 2>&1; then
+# [sycl_compile.begin]
+icpx -fsycl -std=c++20 -shared -O3 compile/add_one_sycl.cpp \
+    -fPIC -fvisibility=hidden                              \
+    $(tvm-ffi-config --cxxflags)                           \
+    $(tvm-ffi-config --ldflags)                            \
+    $(tvm-ffi-config --libs)                               \
+    -o $BUILD_DIR/add_one_sycl.so
+# [sycl_compile.end]
+fi
+
 # Example 3. Load and run `add_one_cpu.so` in C++
 
 if [ -f "$BUILD_DIR/add_one_cpu.so" ]; then
